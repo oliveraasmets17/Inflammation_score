@@ -4,7 +4,7 @@ This repo includes codes to calculate microbiome inflammation index and evaluate
 
 Repo contains two R scripts:
 
-1. Src/GlycA_employ_applyModel.R - script to calculate microbiome inflammation score from the given MetaPhlan 3 taxonomic profile
+## 1. Src/GlycA_employ_applyModel.R - script to calculate microbiome inflammation score from the given MetaPhlan 3 taxonomic profile
 
 **Input**
 - MetaPhlan 3 taxonomic profile with sample id-s as rownames (line 30)
@@ -15,7 +15,7 @@ Repo contains two R scripts:
 - Data frame containing calculated microbiome inflammation (MIS) for each subject
 - Output saved into *Results* directory as *Microbiome_inflammation_score.rds* (line 167)
   
-2. Src/GlycA_employ_survivalAnalysis.R - script to run survival analysis to evaluate MIS for disease prediction
+## 2. Src/GlycA_employ_survivalAnalysis.R - script to run survival analysis to evaluate MIS for disease prediction
 
 **Input**
 - Output of the *GlycA_employ_applyModel.R* script - recalculated MIS dataset *Results/Microbiome_inflammation_score.rds* (line 21)
