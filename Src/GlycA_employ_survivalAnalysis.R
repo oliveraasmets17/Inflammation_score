@@ -13,6 +13,7 @@ library("dplyr")
 library("curatedMetagenomicData")
 library("survival")
 library("ggsurvfit")
+library("purrr")
 
 
 
@@ -55,7 +56,7 @@ phenotype_data <- curatedMetagenomicData::sampleMetadata %>%
                 age = rnorm(nrow(.), mean = 50, sd = 4),
                 gender = rbinom(n = nrow(.), size = 1, prob = 0.6)) %>% 
   dplyr::select(sample_id, BMI, age, gender, status, time, endpoint)
-  
+
 # Example of the phenotype data
 # Status =  0 for censored observation, 1 for event
 head(phenotype_data)
@@ -164,21 +165,18 @@ for (i in unique(survival_data$endpoint)){
   
   # Save plot to Results folder
   #-----------------------------#
-  ggsave(plot = MP3_survplot_local_top20, 
-         filename = paste("Results/KMplot_Metaphlan3_localDecile_", i, ".png", sep = ""), 
-         width = 9, height = 6)
+  ggsave(plot = MP3_survplot_local_top20, filename = paste("Results/KMplot_Metaphlan3_localDecile_", i, ".png", sep = ""), width = 9, height = 6)
+  ggsave(plot = MP3_survplot_local_top20, filename = paste("Results/KMplot_Metaphlan3_localDecile_", i, ".pdf", sep = ""), width = 9, height = 6)
   
-  ggsave(plot = MP4_survplot_local_top20, 
-         filename = paste("Results/KMplot_Metaphlan4_localDecile_", i, ".png", sep = ""), 
-         width = 9, height = 6)
+  ggsave(plot = MP4_survplot_local_top20, filename = paste("Results/KMplot_Metaphlan4_localDecile_", i, ".png", sep = ""), width = 9, height = 6)
+  ggsave(plot = MP4_survplot_local_top20, filename = paste("Results/KMplot_Metaphlan4_localDecile_", i, ".pdf", sep = ""), width = 9, height = 6)
   
-  ggsave(plot = MP3_survplot_EstMB_top20, 
-         filename = paste("Results/KMplot_Metaphlan3_EstDecile_", i, ".png", sep = ""), 
-         width = 9, height = 6)
+  ggsave(plot = MP3_survplot_EstMB_top20, filename = paste("Results/KMplot_Metaphlan3_EstDecile_", i, ".png", sep = ""), width = 9, height = 6)
+  ggsave(plot = MP3_survplot_EstMB_top20, filename = paste("Results/KMplot_Metaphlan3_EstDecile_", i, ".pdf", sep = ""), width = 9, height = 6)
   
-  ggsave(plot = MP4_survplot_EstMB_top20, 
-         filename = paste("Results/KMplot_Metaphlan4_EstDecile_", i, ".png", sep = ""), 
-         width = 9, height = 6)
+  ggsave(plot = MP4_survplot_EstMB_top20, filename = paste("Results/KMplot_Metaphlan4_EstDecile_", i, ".png", sep = ""), width = 9, height = 6)
+  ggsave(plot = MP4_survplot_EstMB_top20, filename = paste("Results/KMplot_Metaphlan4_EstDecile_", i, ".pdf", sep = ""), width = 9, height = 6)
+  
 }
 
 
@@ -197,42 +195,52 @@ for (i in unique(survival_data$endpoint)){
     
   
   # NB! Depending on the phenotypes available, include additional covariates
+  # Run models, clean output, test assumptions
   MP3_cox_continuous = coxph(Surv(time, status) ~ BMI + age + gender + scale(MIS_MP3), data = survival_data_run)
+  MP3_cox_output_continuous = broom::tidy(MP3_cox_continuous) %>% dplyr::mutate(type = "continuous", bioinf = "Metaphlan3", endpoint = i) # Clean model output
+  MP3_ph_continuous = cox.zph(MP3_cox_continuous)$table %>% as.data.frame() %>% dplyr::mutate(type = "continuous", bioinf = "Metaphlan3", endpoint = i) # Assumptions
+  
   MP3_cox_localDecile = coxph(Surv(time, status) ~ BMI + age + gender + MP3_MIS_local_top20, data = survival_data_run)
-  MP3_cox_EstDecile = coxph(Surv(time, status) ~ BMI + age + gender + MP3_MIS_EstMB_top20, data = survival_data_run)
+  MP3_cox_output_localDecile = broom::tidy(MP3_cox_localDecile) %>% dplyr::mutate(type = "localDecile", bioinf = "Metaphlan3", endpoint = i) # Clean model output
+  MP3_ph_localDecile = cox.zph(MP3_cox_localDecile)$table %>% as.data.frame() %>% dplyr::mutate(type = "localDecile", bioinf = "Metaphlan3", endpoint = i) # Assumptions
   
   MP4_cox_continuous = coxph(Surv(time, status) ~ BMI + age + gender + scale(MIS_MP4), data = survival_data_run)
+  MP4_cox_output_continuous = broom::tidy(MP4_cox_continuous) %>% dplyr::mutate(type = "continuous", bioinf = "Metaphlan4", endpoint = i) # Clean model output
+  MP4_ph_continuous = cox.zph(MP4_cox_continuous)$table %>% as.data.frame() %>% dplyr::mutate(type = "continuous", bioinf = "Metaphlan4", endpoint = i) # Assumptions
+  
   MP4_cox_localDecile = coxph(Surv(time, status) ~ BMI + age + gender + MP4_MIS_local_top20, data = survival_data_run)
-  MP4_cox_EstDecile = coxph(Surv(time, status) ~ BMI + age + gender + MP4_MIS_EstMB_top20, data = survival_data_run)
+  MP4_cox_output_localDecile = broom::tidy(MP4_cox_localDecile) %>% dplyr::mutate(type = "localDecile", bioinf = "Metaphlan4", endpoint = i) # Clean model output
+  MP4_ph_localDecile = cox.zph(MP4_cox_localDecile)$table %>% as.data.frame() %>% dplyr::mutate(type = "localDecile", bioinf = "Metaphlan4", endpoint = i) # Assumptions
   
-  # Assumptions
-  MP3_ph_continuous = cox.zph(MP3_cox_continuous)$table %>% as.data.frame() %>% dplyr::mutate(type = "continuous", bioinf = "Metaphlan3", endpoint = i)
-  MP4_ph_continuous = cox.zph(MP4_cox_continuous)$table %>% as.data.frame() %>% dplyr::mutate(type = "continuous", bioinf = "Metaphlan4", endpoint = i)
-  
-  MP3_ph_localDecile = cox.zph(MP3_cox_localDecile)$table %>% as.data.frame() %>% dplyr::mutate(type = "localDecile", bioinf = "Metaphlan3", endpoint = i)
-  MP4_ph_localDecile = cox.zph(MP4_cox_localDecile)$table %>% as.data.frame() %>% dplyr::mutate(type = "localDecile", bioinf = "Metaphlan4", endpoint = i)
-  
-  MP3_ph_EstDecile = cox.zph(MP3_cox_EstDecile)$table %>% as.data.frame() %>% dplyr::mutate(type = "EstMBDecile", bioinf = "Metaphlan3", endpoint = i)
-  MP4_ph_EstDecile = cox.zph(MP4_cox_EstDecile)$table %>% as.data.frame() %>% dplyr::mutate(type = "EstMBDecile", bioinf = "Metaphlan4", endpoint = i)
-  
-  # Clean model output
-  MP3_cox_output_continuous = broom::tidy(MP3_cox_continuous) %>% dplyr::mutate(type = "continuous", bioinf = "Metaphlan3", endpoint = i)
-  MP4_cox_output_continuous = broom::tidy(MP4_cox_continuous) %>% dplyr::mutate(type = "continuous", bioinf = "Metaphlan4", endpoint = i)
-  
-  MP3_cox_output_localDecile = broom::tidy(MP3_cox_localDecile) %>% dplyr::mutate(type = "localDecile", bioinf = "Metaphlan3", endpoint = i)
-  MP4_cox_output_localDecile = broom::tidy(MP4_cox_localDecile) %>% dplyr::mutate(type = "localDecile", bioinf = "Metaphlan4", endpoint = i)
-  
-  MP3_cox_output_EstDecile = broom::tidy(MP3_cox_EstDecile) %>% dplyr::mutate(type = "EstDecile", bioinf = "Metaphlan3", endpoint = i)
-  MP4_cox_output_EstDecile = broom::tidy(MP4_cox_EstDecile) %>% dplyr::mutate(type = "EstDecile", bioinf = "Metaphlan4", endpoint = i)
   
   # Add data to output df
   Cox_assumptions_df = dplyr::bind_rows(Cox_assumptions_df, MP3_ph_continuous, MP4_ph_continuous, 
-                                        MP3_ph_localDecile, MP4_ph_localDecile, 
-                                        MP3_ph_EstDecile, MP4_ph_EstDecile)
+                                        MP3_ph_localDecile, MP4_ph_localDecile)
   
   Cox_results_df = dplyr::bind_rows(Cox_results_df, MP3_cox_output_continuous, MP4_cox_output_continuous, 
-                                    MP3_cox_output_localDecile, MP4_cox_output_localDecile, 
-                                    MP3_cox_output_EstDecile, MP4_cox_output_EstDecile)
+                                    MP3_cox_output_localDecile, MP4_cox_output_localDecile)
+  
+  
+  # Run models for EstMB decile when possible
+  check_MP3 = survival_data_run %>% dplyr::group_by(MP3_MIS_EstMB_top20, status) %>% dplyr::summarise(n = n())
+  if (nrow(check_MP3) == 4 & min(check_MP3$n) >= 5){
+    MP3_cox_EstDecile = coxph(Surv(time, status) ~ BMI + age + gender + MP3_MIS_EstMB_top20, data = survival_data_run)
+    MP3_cox_output_EstDecile = broom::tidy(MP3_cox_EstDecile) %>% dplyr::mutate(type = "EstDecile", bioinf = "Metaphlan3", endpoint = i) # Clean model output
+    MP3_ph_EstDecile = cox.zph(MP3_cox_EstDecile)$table %>% as.data.frame() %>% dplyr::mutate(type = "EstMBDecile", bioinf = "Metaphlan3", endpoint = i) # Assumptions
+    
+    Cox_results_df = dplyr::bind_rows(Cox_results_df, MP3_cox_output_EstDecile)
+    Cox_assumptions_df = dplyr::bind_rows(Cox_assumptions_df, MP3_ph_EstDecile)
+  }
+
+  check_MP4 = survival_data_run %>% dplyr::group_by(MP4_MIS_EstMB_top20, status) %>% dplyr::summarise(n = n())
+  if (nrow(check_MP4) == 4 & min(check_MP4$n) >= 5){
+    MP4_cox_EstDecile = coxph(Surv(time, status) ~ BMI + age + gender + MP4_MIS_EstMB_top20, data = survival_data_run)
+    MP4_cox_output_EstDecile = broom::tidy(MP4_cox_EstDecile) %>% dplyr::mutate(type = "EstDecile", bioinf = "Metaphlan4", endpoint = i) # Clean model output
+    MP4_ph_EstDecile = cox.zph(MP4_cox_EstDecile)$table %>% as.data.frame() %>% dplyr::mutate(type = "EstMBDecile", bioinf = "Metaphlan4", endpoint = i) # Assumptions
+    
+    Cox_results_df = dplyr::bind_rows(Cox_results_df, MP3_cox_output_EstDecile)
+    Cox_assumptions_df = dplyr::bind_rows(Cox_assumptions_df, MP3_ph_EstDecile)
+  }
 } 
 
 # Save 
